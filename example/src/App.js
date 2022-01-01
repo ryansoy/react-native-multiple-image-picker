@@ -69,7 +69,7 @@ export default function App() {
           },
         ]}
         data={images}
-        keyExtractor={(item, index) => (item?.filename ?? item?.path) + index}
+        keyExtractor={(item, index) => (item?.fileName ?? item?.path) + index}
         renderItem={renderItem}
         numColumns={3}
       />

@@ -212,7 +212,7 @@ class MultipleImagePicker: NSObject, TLPhotosPickerViewControllerDelegate,UINavi
     }
     
     func photoPickerDidCancel() {
-        self.reject("PICKER_CANCELLED", "User has canceled", nil)
+        self.reject("PICKER_CANCELLED", "User has cancelled", nil)
     }
     
     internal func dismissLoading() {

@@ -21,6 +21,8 @@ export type PickerErrorCode =
   | 'NO_LIBRARY_PERMISSION'
   | 'NO_CAMERA_PERMISSION';
 
+export type MediaType = 'all' | 'photo' | 'video';
+
 export type Options = {
   isPreview?: boolean;
   selectedColor?: string;
@@ -42,7 +44,7 @@ export type Options = {
   autoPlay?: boolean;
   muteAudio?: boolean;
   preventAutomaticLimitedAccessAlert?: boolean; // newest iOS 14
-  mediaType?: string;
+  mediaType?: MediaType;
   numberOfColumn?: number;
   maxSelectedAssets?: number;
   fetchOption?: Object;

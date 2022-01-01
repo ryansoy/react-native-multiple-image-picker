@@ -121,7 +121,7 @@ class MultipleImagePickerModule(reactContext: ReactApplicationContext) :
                 }
 
                 override fun onCancel() {
-                    promise.reject("PICKER_CANCELLED", "User has canceled", null)
+                    promise.reject("PICKER_CANCELLED", "User has cancelled", null)
                 }
             })
     }
