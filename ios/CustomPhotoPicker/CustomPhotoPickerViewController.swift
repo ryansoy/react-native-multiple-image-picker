@@ -17,19 +17,27 @@ class CustomPhotoPickerViewController: TLPhotosPickerViewController {
     
     override func makeUI() {
         super.makeUI()
-        self.customNavItem.leftBarButtonItem = UIBarButtonItem.init(barButtonSystemItem: .stop, target: nil, action: #selector(customAction))
+        self.collectionView.backgroundColor = .white
+        self.customNavItem.leftBarButtonItem?.tintColor = .black
         self.customNavItem.rightBarButtonItem?.tintColor = MultipleImagePickerConfigure.selectedColor
-    }
-    
-    
-    @objc func customAction() {
-        self.delegate?.photoPickerDidCancel()
-        self.dismiss(animated: true) { [weak self] in
-            self?.delegate?.dismissComplete()
-            self?.dismissCompletion?()
+        
+        for subview in self.view.subviews {
+            guard let navbar = subview as? UINavigationBar else {
+                break
+            }
+            if #available(iOS 13.0, *) {
+                navbar.barTintColor = .systemBackground
+            } else {
+                navbar.barTintColor = UIColor.white
+            }
+        }
+        
+        if #available(iOS 13.0, *) {
+            self.customNavItem.leftBarButtonItem?.tintColor = .label
+            self.collectionView.backgroundColor = .systemBackground
+            self.view.backgroundColor = .systemBackground
         }
     }
-         
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)

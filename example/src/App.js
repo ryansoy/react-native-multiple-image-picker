@@ -12,12 +12,15 @@ export default function App() {
       const response = await MultipleImagePicker.openPicker({
         selectedAssets: images,
         isExportThumbnail: true,
-        // selectedColor: '#f9813a',
+        maxVideo: 1,
+        usedCameraButton: false,
+        isCrop: true,
+        isCropCircle: true,
       });
-      console.log('done: ', response);
+      console.log('response: ', response);
       setImages(response);
     } catch (e) {
-      console.log(e);
+      console.log(e.code, e.message);
     }
   };
 
@@ -36,7 +39,10 @@ export default function App() {
         <Image
           width={IMAGE_WIDTH}
           source={{
-            uri: item?.type === 'video' ? item?.thumbnail ?? '' : item?.path,
+            uri:
+              item?.type === 'video'
+                ? item?.thumbnail ?? ''
+                : 'file://' + (item?.crop?.cropPath ?? item.path),
           }}
           style={style.media}
         />
@@ -65,9 +71,11 @@ export default function App() {
         renderItem={renderItem}
         numColumns={3}
       />
-      <TouchableOpacity style={style.openPicker} onPress={openPicker}>
-        <Text style={style.openText}>open</Text>
-      </TouchableOpacity>
+      <View style={style.bottom}>
+        <TouchableOpacity style={style.openPicker} onPress={openPicker}>
+          <Text style={style.openText}>open</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -93,14 +101,19 @@ const style = StyleSheet.create({
     marginBottom: 6,
     backgroundColor: 'rgba(0,0,0,0.2)',
   },
+  bottom: {
+    padding: 24,
+  },
   openText: {
     fontWeight: 'bold',
     fontSize: 16,
+    color: '#fff',
+    paddingVertical: 12,
   },
   openPicker: {
-    flex: 1 / 3,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#000',
   },
   buttonDelete: {
     paddingHorizontal: 8,

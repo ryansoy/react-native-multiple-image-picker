@@ -18,9 +18,12 @@ let defaultOptions = {
   allowedLivePhotos: true,
   preventAutomaticLimitedAccessAlert: true, // newest iOS 14
   emptyMessage: 'No albums',
-  selectedColor: '#30475e',
+  selectMessage: 'Select',
+  deselectMessage: 'Deselect',
+  selectedColor: '#FB9300',
   maximumMessageTitle: 'Notification',
   maximumMessage: 'You have selected the maximum number of media allowed',
+  maximumVideoMessage: 'You have selected the maximum number of video allowed',
   messageTitleButton: 'OK',
   cancelTitle: 'Cancel',
   tapHereToChange: 'Tap here to change',
@@ -39,11 +42,15 @@ let defaultOptions = {
   maxVideoDuration: 60, //for camera : max video recording duration
   numberOfColumn: 3,
   maxSelectedAssets: 20,
-  singleSelectedMode: false,
   doneTitle: 'Done',
   isPreview: true,
   mediaType: 'all',
   isExportThumbnail: false,
+  maxVideo: 20,
+  selectedAssets: [],
+  singleSelectedMode: false,
+  isCrop: false,
+  isCropCircle: false,
   //****//
 
   // fetchOption: Object,
@@ -58,10 +65,17 @@ exportObject = {
       ...defaultOptions,
       ...optionsPicker,
     };
+    const isSingle = options?.singleSelectedMode ?? false;
+    if (isSingle) options.selectedAssets = [];
+
     return new Promise(async (resolve, reject) => {
       try {
         const response = await MultipleImagePicker.openPicker(options);
+        // console.log('res', response);
         if (response?.length) {
+          if (isSingle) {
+            resolve(response[0]);
+          }
           resolve(response);
           return;
         }

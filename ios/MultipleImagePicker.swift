@@ -15,6 +15,9 @@ class MultipleImagePicker: NSObject, TLPhotosPickerViewControllerDelegate,UINavi
     var bridge: RCTBridge!
     var selectedAssets = [TLPHAsset]()
     var options = NSMutableDictionary();
+    var videoAssets = [PHAsset]()
+    var videoCount = 0
+    // controller
     
     
     
@@ -30,6 +33,10 @@ class MultipleImagePicker: NSObject, TLPhotosPickerViewControllerDelegate,UINavi
     func deselectedPhoto(picker: TLPhotosPickerViewController, at: Int) {
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.impactOccurred()
+        let cell = picker.collectionView(picker.collectionView, cellForItemAt: IndexPath.init(row: at, section: 0)) as! Cell
+        if(cell.asset?.mediaType == PHAssetMediaType.video){
+            videoCount -= 1
+        }
     }
     
     func selectedPhoto(picker: TLPhotosPickerViewController, at: Int) {
@@ -42,6 +49,7 @@ class MultipleImagePicker: NSObject, TLPhotosPickerViewControllerDelegate,UINavi
         generator.impactOccurred()
     }
     
+    
     @objc(openPicker:withResolver:withRejecter:)
     func openPicker(options: NSDictionary, resolve:@escaping RCTPromiseResolveBlock,reject:@escaping RCTPromiseRejectBlock) -> Void {
         self.setConfiguration(options: options, resolve: resolve, reject: reject)
@@ -49,15 +57,18 @@ class MultipleImagePicker: NSObject, TLPhotosPickerViewControllerDelegate,UINavi
         viewController.delegate = self
         
         viewController.didExceedMaximumNumberOfSelection = { [weak self] (picker) in
-            self?.showExceededMaximumAlert(vc: picker);
+            self?.showExceededMaximumAlert(vc: picker, isVideo: false);
         }
         viewController.configure = MultipleImagePickerConfigure
         viewController.selectedAssets = self.selectedAssets
         viewController.logDelegate = self
-        viewController.modalTransitionStyle = .coverVertical
-        viewController.modalPresentationStyle = .overCurrentContext
+        
+        //        viewController.navigationBar
         
         DispatchQueue.main.async {
+            viewController.modalTransitionStyle = .coverVertical
+            viewController.modalPresentationStyle = .fullScreen
+            
             self.getTopMostViewController()?.present(viewController, animated: true, completion: nil)
         }
     }
@@ -78,6 +89,8 @@ class MultipleImagePicker: NSObject, TLPhotosPickerViewControllerDelegate,UINavi
         MultipleImagePickerConfigure.cancelTitle = self.options["cancelTitle"] as! String;
         MultipleImagePickerConfigure.doneTitle = self.options["doneTitle"] as! String;
         MultipleImagePickerConfigure.emptyMessage = self.options["emptyMessage"] as! String;
+        MultipleImagePickerConfigure.selectMessage = self.options["selectMessage"] as! String;
+        MultipleImagePickerConfigure.deselectMessage = self.options["deselectMessage"] as! String;
         MultipleImagePickerConfigure.usedCameraButton = self.options["usedCameraButton"] as! Bool;
         MultipleImagePickerConfigure.usedPrefetch = self.options["usedPrefetch"] as! Bool;
         MultipleImagePickerConfigure.allowedLivePhotos = self.options["allowedLivePhotos"]  as! Bool;
@@ -95,7 +108,7 @@ class MultipleImagePicker: NSObject, TLPhotosPickerViewControllerDelegate,UINavi
         let mediaType = self.options["mediaType"] as! String;
         
         MultipleImagePickerConfigure.mediaType = mediaType == "video" ? PHAssetMediaType.video : mediaType == "image" ? PHAssetMediaType.image : nil ;
-
+        
         MultipleImagePickerConfigure.nibSet = (nibName: "Cell", bundle: MultipleImagePickerBundle.bundle())
         
         //        configure.allowedPhotograph = self.options["allowedPhotograph"]
@@ -107,37 +120,56 @@ class MultipleImagePicker: NSObject, TLPhotosPickerViewControllerDelegate,UINavi
     }
     
     func handleSelectedAssets(selecteds: NSArray){
-        if(selecteds.count != self.selectedAssets.count){
+        let assetsExist =  selecteds.filter{ ($0 as! NSObject).value(forKey: "localIdentifier") != nil }
+        videoCount = selecteds.filter{ ($0 as! NSObject).value(forKey: "type") as? String == "video" }.count
+        
+        print("assets", assetsExist.count)
+        print("self.selectedAssets.count", self.selectedAssets)
+        if(assetsExist.count != self.selectedAssets.count){
             var assets = [TLPHAsset]();
-            for index in 0..<selecteds.count {
-                let value = selecteds[index]
+            for index in 0..<assetsExist.count {
+                let value = assetsExist[index]
                 let localIdentifier = (value as! NSObject).value(forKey: "localIdentifier") as! String
                 if(!localIdentifier.isEmpty){
                     var TLAsset = TLPHAsset.asset(with: localIdentifier);
                     TLAsset?.selectedOrder = index + 1
                     assets.insert(TLAsset!, at: index)
                 }
+                print("index", index)
             }
             self.selectedAssets = assets
+            self.videoCount = assets.filter{ $0.phAsset?.mediaType == .video }.count
         }
     }
     
     func createAttachmentResponse(filePath: String?, withFilename filename: String?, withType type: String?, withAsset asset: PHAsset, withTLAsset TLAsset: TLPHAsset ) -> [AnyHashable :Any]? {
-        
         var media = [
-            "path": "file://" + filePath! as String,
+            "path": filePath! as String,
             "localIdentifier": asset.localIdentifier,
-            "filename":TLAsset.originalFileName!,
+            "fileName":TLAsset.originalFileName!,
             "width": Int(asset.pixelWidth ) as NSNumber,
             "height": Int(asset.pixelHeight ) as NSNumber,
             "mime": type!,
             "creationDate": asset.creationDate!,
-            "type": asset.mediaType == .video ? "video" : "image"
+            "type": asset.mediaType == .video ? "video" : "image",
         ] as [String : Any]
         
-        if(asset.mediaType == .video && options["isExportThumbnail"] as! Bool){
-            let thumbnail = getThumbnail(from: filePath!, in: 0.1)
-            media["thumbnail"] = thumbnail
+        //option in video
+        if(asset.mediaType == .video){
+            //get video's thumbnail
+            if(options["isExportThumbnail"] as! Bool){
+                let thumbnail = getThumbnail(from: filePath!, in: 0.1)
+                media["thumbnail"] = thumbnail
+            }
+            //get video size
+            TLAsset.videoSize { Int in
+                media["size"] = Int
+            }
+            media["duration"] = asset.duration
+        }else{
+            TLAsset.photoSize { Int in
+                media["size"] = Int
+            }
         }
         return media
     }
@@ -177,26 +209,30 @@ class MultipleImagePicker: NSObject, TLPhotosPickerViewControllerDelegate,UINavi
         
     }
     
-//    func resizedImage(at url: URL, for size: CGSize) -> UIImage? {
-//        let options: [CFString: Any] = [
-//            kCGImageSourceCreateThumbnailFromImageIfAbsent: true,
-//            kCGImageSourceCreateThumbnailWithTransform: true,
-//            kCGImageSourceShouldCacheImmediately: true,
-//            kCGImageSourceThumbnailMaxPixelSize: max(size.width, size.height)
-//        ]
-//
-//        guard let imageSource = CGImageSourceCreateWithURL(url as NSURL, nil),
-//              let image = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, options as CFDictionary)
-//        else {
-//            return nil
-//        }
-//
-//        return UIImage(cgImage: image)
-//    }
+    func shouldDismissPhotoPicker(withTLPHAssets: [TLPHAsset]) -> Bool {
+        return false
+    }
+    
+    func photoPickerDidCancel() {
+        self.reject("PICKER_CANCELLED", "User has canceled", nil)
+    }
+    
+    internal func dismissLoading() {
+        if let vc = self.getTopMostViewController()?.presentedViewController, vc is UIAlertController {
+            self.getTopMostViewController()?.dismiss(animated: false, completion: nil)
+        }
+    }
+    
+    func dismissComplete(){
+        DispatchQueue.main.async {
+            self.getTopMostViewController()?.dismiss(animated: true, completion: nil)
+        }
+    }
     
     func dismissPhotoPicker(withTLPHAssets: [TLPHAsset]) {
         if(withTLPHAssets.count == 0){
             self.resolve([]);
+            dismissComplete()
             return;
         }
         let  withTLPHAssetsCount = withTLPHAssets.count;
@@ -204,60 +240,97 @@ class MultipleImagePicker: NSObject, TLPhotosPickerViewControllerDelegate,UINavi
         
         //check difference
         if(withTLPHAssetsCount == selectedAssetsCount && withTLPHAssets[withTLPHAssetsCount - 1].phAsset?.localIdentifier == self.selectedAssets[selectedAssetsCount-1].phAsset?.localIdentifier){
+            dismissComplete()
             return;
         }
+        
         let selections = NSMutableArray.init(array: withTLPHAssets);
         self.selectedAssets = withTLPHAssets
-        
         //imageRequestOptions
         let imageRequestOptions = PHImageRequestOptions();
         imageRequestOptions.deliveryMode = .fastFormat;
         imageRequestOptions.resizeMode = .fast;
+        imageRequestOptions.isNetworkAccessAllowed = true
+        imageRequestOptions.isSynchronous = false
         
+        let videoRequestOptions = PHVideoRequestOptions.init()
+        videoRequestOptions.version = PHVideoRequestOptionsVersion.current
+        videoRequestOptions.deliveryMode = PHVideoRequestOptionsDeliveryMode.automatic
+        videoRequestOptions.isNetworkAccessAllowed = true
         
-        let group = DispatchGroup()
+        //add loading view
+        let alert = UIAlertController(title: nil, message: "Please wait...", preferredStyle: .alert)
         
-        for TLAsset in withTLPHAssets {
-            group.enter()
-            let asset = TLAsset.phAsset
-            let index = TLAsset.selectedOrder - 1;
-            TLAsset.tempCopyMediaFile(videoRequestOptions: nil, imageRequestOptions: imageRequestOptions, livePhotoRequestOptions: nil, exportPreset: AVAssetExportPresetMediumQuality, convertLivePhotosToJPG: true, progressBlock: { (Double) in
-                
-            }, completionBlock: { (filePath, fileType) in
-                let object = NSDictionary(dictionary: self.createAttachmentResponse(
-                    filePath: filePath.absoluteString,
-                    withFilename:TLAsset.originalFileName,
-                    withType: fileType,
-                    withAsset: asset!,
-                    withTLAsset: TLAsset
-                )!);
-                
-                selections[index] = object as Any;
-                group.leave();
-            })
+        let loadingIndicator = UIActivityIndicatorView(frame: CGRect(x: 10, y: 5, width: 50, height: 50))
+        loadingIndicator.hidesWhenStopped = true
+        loadingIndicator.style = UIActivityIndicatorView.Style.gray
+        if #available(iOS 13.0, *) {
+            loadingIndicator.color = .secondaryLabel
+        } else {
+            loadingIndicator.color = .black
         }
-        group.notify(queue: .main){
-            self.resolve(selections);
-        }
+        loadingIndicator.startAnimating();
+        
+        alert.view.addSubview(loadingIndicator)
+        self.getTopMostViewController()?.present(alert, animated: true, completion: {
+            let group = DispatchGroup()
+            for TLAsset in withTLPHAssets {
+                group.enter()
+                let asset = TLAsset.phAsset
+                let index = TLAsset.selectedOrder - 1;
+                
+                TLAsset.tempCopyMediaFile(videoRequestOptions: videoRequestOptions, imageRequestOptions: imageRequestOptions, livePhotoRequestOptions: nil, exportPreset: AVAssetExportPresetHighestQuality, convertLivePhotosToJPG: true, progressBlock: { (progress) in
+                    print("progress: ", progress)
+                }, completionBlock: { (filePath, fileType) in
+                    let object = NSDictionary(dictionary: self.createAttachmentResponse(
+                        filePath: filePath.absoluteString,
+                        withFilename:TLAsset.originalFileName,
+                        withType: fileType,
+                        withAsset: asset!,
+                        withTLAsset: TLAsset
+                    )!);
+                    
+                    selections[index] = object as Any;
+                    group.leave();
+                })
+            }
+            group.notify(queue: .main){ [self] in
+                resolve(selections);
+                DispatchQueue.main.async {
+                    alert.dismiss(animated: true, completion: {
+                        dismissComplete()
+                    })
+                }
+            }
+        })
     }
     
     func getTopMostViewController() -> UIViewController? {
         var topMostViewController = UIApplication.shared.keyWindow?.rootViewController
-        
         while let presentedViewController = topMostViewController?.presentedViewController {
             topMostViewController = presentedViewController
         }
-        
         return topMostViewController
     }
     
-    func showExceededMaximumAlert(vc: UIViewController) {
-        let alert = UIAlertController(title: self.options["maximumMessageTitle"] as? String, message: self.options["maximumMessage"] as? String, preferredStyle: .alert)
+    func showExceededMaximumAlert(vc: UIViewController, isVideo: Bool) {
+        let alert = UIAlertController(title: self.options["maximumMessageTitle"] as? String, message: self.options[isVideo ? "maximumVideoMessage" : "maximumMessage"] as? String, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: self.options["messageTitleButton"] as? String, style: .default, handler: nil))
         vc.present(alert, animated: true, completion: nil)
     }
     
-    
+    func canSelectAsset(phAsset: PHAsset) -> Bool {
+        let maxVideo = self.options["maxVideo"]
+        if(phAsset.mediaType == .video){
+            
+            if(videoCount == maxVideo as! Int && !(options["singleSelectedMode"] as! Bool)){
+                showExceededMaximumAlert(vc: self.getTopMostViewController()!, isVideo: true)
+                return false
+            }
+            videoCount += 1
+        }
+        return true
+    }
 }
 
 func hexStringToUIColor (hex:String) -> UIColor {
