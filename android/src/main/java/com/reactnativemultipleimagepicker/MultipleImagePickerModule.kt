@@ -87,6 +87,7 @@ class MultipleImagePickerModule(reactContext: ReactApplicationContext) :
             .imageSpanCount(numberOfColumn)
             .isSingleDirectReturn(true)
             .isZoomAnim(true)
+            .rotateEnabled(false)
             .isPageStrategy(true, 50)
             .isWithVideoImage(true)
             .videoMaxSecond(maxVideoDuration)
