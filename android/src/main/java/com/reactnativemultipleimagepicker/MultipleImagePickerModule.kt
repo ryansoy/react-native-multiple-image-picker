@@ -52,6 +52,7 @@ class MultipleImagePickerModule(reactContext: ReactApplicationContext) : ReactCo
                 .maxSelectNum(maxSelectedAssets)
                 .imageSpanCount(numberOfColumn)
                 .isZoomAnim(true)
+                .rotateEnabled(false)
                 .isPageStrategy(true, 50)
                 .isWithVideoImage(true)
                 .videoMaxSecond(maxVideoDuration)
