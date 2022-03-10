@@ -67,7 +67,7 @@ class MultipleImagePickerModule(reactContext: ReactApplicationContext) :
             basicUCropConfig.setShowCropFrame(false)
         }else{
             basicUCropConfig.setAspectRatioOptions(
-                1,
+                0,
                 AspectRatio("1:2", 1F, 2F),
                 AspectRatio("3:4", 3F, 4F),
 //            AspectRatio(
