@@ -144,8 +144,12 @@ class MultipleImagePickerModule(reactContext: ReactApplicationContext) :
             mPictureParameterStyle = getStyle(options)
             isCamera = options.getBoolean("usedCameraButton")
             isCropCircle = options.getBoolean("isCropCircle")
-            isHideBottomController = options.getBoolean("isHideBottomController",true)
-            defaultAspectRadio = options.getInt("defaultAspectRadio",0)
+            if(options.hasKey("isHideBottomController")){
+                isHideBottomController = options.getBoolean("isHideBottomController")
+            }
+            if(options.hasKey("defaultAspectRadio")){
+                defaultAspectRadio = options.getInt("defaultAspectRadio")
+            }            
             isCrop = cropping == true && singleSelectedMode == true
         }
     }
