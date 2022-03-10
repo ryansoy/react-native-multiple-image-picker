@@ -60,7 +60,7 @@ class MultipleImagePickerModule(reactContext: ReactApplicationContext) :
         basicUCropConfig.setShowCropFrame(true)
         basicUCropConfig.setShowCropGrid(true)
         basicUCropConfig.setCropDragSmoothToCenter(true)
-        basicUCropConfig.setHideBottomControls(false)
+        basicUCropConfig.setHideBottomControls(true)
         basicUCropConfig.setCircleDimmedLayer(isCropCircle)
         if(isCropCircle){
             basicUCropConfig.withAspectRatio(1F,1F)
