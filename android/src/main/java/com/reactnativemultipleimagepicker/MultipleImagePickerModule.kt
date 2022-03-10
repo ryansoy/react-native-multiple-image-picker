@@ -48,6 +48,8 @@ class MultipleImagePickerModule(reactContext: ReactApplicationContext) :
     private var isCamera: Boolean = true
     private var isCrop: Boolean = false
     private var isCropCircle: Boolean = false
+    private var isHideBottomController: Boolean = true
+    private var defaultAspectRadio: Int = 0
 
     @ReactMethod
     fun openPicker(options: ReadableMap?, promise: Promise): Unit {
@@ -60,14 +62,14 @@ class MultipleImagePickerModule(reactContext: ReactApplicationContext) :
         basicUCropConfig.setShowCropFrame(true)
         basicUCropConfig.setShowCropGrid(true)
         basicUCropConfig.setCropDragSmoothToCenter(true)
-        basicUCropConfig.setHideBottomControls(true)
+        basicUCropConfig.setHideBottomControls(isHideBottomController)
         basicUCropConfig.setCircleDimmedLayer(isCropCircle)
         if(isCropCircle){
             basicUCropConfig.withAspectRatio(1F,1F)
             basicUCropConfig.setShowCropFrame(false)
         }else{
             basicUCropConfig.setAspectRatioOptions(
-                0,
+                defaultAspectRadio,
                 AspectRatio("1:2", 1F, 2F),
                 AspectRatio("3:4", 3F, 4F),
 //            AspectRatio(
@@ -142,6 +144,8 @@ class MultipleImagePickerModule(reactContext: ReactApplicationContext) :
             mPictureParameterStyle = getStyle(options)
             isCamera = options.getBoolean("usedCameraButton")
             isCropCircle = options.getBoolean("isCropCircle")
+            isHideBottomController = options.getBoolean("isHideBottomController")
+            defaultAspectRadio = options.getInt("defaultAspectRadio")
             isCrop = cropping == true && singleSelectedMode == true
         }
     }
